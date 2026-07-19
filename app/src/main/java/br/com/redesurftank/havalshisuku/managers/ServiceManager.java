@@ -58,6 +58,7 @@ import br.com.redesurftank.havalshisuku.models.ServiceManagerEventType;
 import br.com.redesurftank.havalshisuku.models.SharedPreferencesKeys;
 import br.com.redesurftank.havalshisuku.models.SteeringWheelCustomActionType;
 import br.com.redesurftank.havalshisuku.models.MainUiManager;
+import br.com.redesurftank.havalshisuku.models.screens.GraphicsScreen;
 import br.com.redesurftank.havalshisuku.models.screens.Screen;
 import br.com.redesurftank.havalshisuku.utils.FridaUtils;
 import br.com.redesurftank.havalshisuku.utils.ShizukuUtils;
@@ -652,6 +653,12 @@ public class ServiceManager {
                 } catch (RemoteException e) {
                     Log.w(TAG, "Error to launch AVM camera");
                 }
+                break;
+            case OPEN_GRAPHICS_SCREEN:
+                GraphicsScreen graphicsScreen = new GraphicsScreen();
+                graphicsScreen.setReturnScreen(MainUiManager.getInstance().getCurrentScreen());
+                MainUiManager.getInstance().updateScreen(graphicsScreen);
+                Log.w(TAG, "Opened graphics screen via steering wheel button");
                 break;
         }
     }

@@ -23,6 +23,10 @@ public class MainUiManager {
         this.sharedPreferences = ServiceManager.getInstance().getSharedPreferences();
     }
 
+    public Screen getCurrentScreen() {
+        return this.currentScreen;
+    }
+
     public void updateScreen() {
         this.currentScreen.initialize();
         if (sharedPreferences != null) sharedPreferences.edit().putString(SharedPreferencesKeys.LAST_CLUSTER_SCREEN.getKey(), this.currentScreen.getJsName()).apply();
