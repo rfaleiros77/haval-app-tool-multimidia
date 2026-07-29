@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.SmartDisplay
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -68,6 +69,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -110,6 +112,7 @@ import androidx.core.content.edit
 import br.com.redesurftank.App
 import br.com.redesurftank.havalshisuku.listeners.IDataChanged
 import br.com.redesurftank.havalshisuku.managers.AutoBrightnessManager
+import br.com.redesurftank.havalshisuku.managers.EsimManager
 import br.com.redesurftank.havalshisuku.managers.ServiceManager
 import br.com.redesurftank.havalshisuku.models.AppInfo
 import br.com.redesurftank.havalshisuku.models.CarConstants
@@ -176,6 +179,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
         add(DrawerMenuItem("Informações", Icons.Default.Info))
         if (advancedUse) {
             add(DrawerMenuItem("Frida Hooks", Icons.Default.Build))
+            add(DrawerMenuItem("eSIM", Icons.Default.SimCard))
         }
     }
 
@@ -286,6 +290,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     3 -> InstallAppsTab()
                     4 -> InformacoesTab()
                     5 -> FridaHooksTab()
+                    6 -> EsimTab()
                 }
             }
         }
@@ -1012,6 +1017,125 @@ fun FridaHooksTab() {
                 TextButton(onClick = { showManualDialog = false }) {
                     Text("Fechar")
                 }
+            }
+        )
+    }
+}
+
+@Composable
+fun EsimTab() {
+    val scope = rememberCoroutineScope()
+    // Diagnóstico do hardware: só habilita o fluxo se houver eUICC acessível a esta multimídia.
+    val euiccAvailable = remember { EsimManager.isEuiccAvailable() }
+    val eid = remember { if (euiccAvailable) EsimManager.getEid() else null }
+
+    var activationCode by remember { mutableStateOf("") }
+    var isDownloading by remember { mutableStateOf(false) }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Cartão de status do hardware
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF13151A))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = if (euiccAvailable) "eSIM disponível nesta multimídia" else "eSIM NÃO disponível aqui",
+                        color = if (euiccAvailable) Color(0xFF4CAF50) else Color(0xFFFF7043),
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 18.sp
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = if (euiccAvailable)
+                            "EID: ${eid ?: "(sem permissão para ler)"}"
+                        else
+                            "O Android da multimídia não expõe um eUICC programável. " +
+                                    "Provavelmente o eSIM está no módulo TBox (conectividade), que é " +
+                                    "separado e não pode ser provisionado por esta API. Rode o " +
+                                    "DOCS/esim-diagnostico.sh no carro para confirmar.",
+                        color = Color(0xFFB0B0B0),
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+
+        if (euiccAvailable) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF13151A))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Código de ativação do plano (LPA)", color = Color.White, fontSize = 16.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Cole aqui o código que a operadora forneceu para o plano que você " +
+                                    "contratou. Formato: LPA:1\$servidor\$id",
+                            color = Color(0xFFB0B0B0),
+                            fontSize = 13.sp
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = activationCode,
+                            onValueChange = { activationCode = it },
+                            singleLine = true,
+                            enabled = !isDownloading,
+                            placeholder = { Text("LPA:1\$...") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = { showConfirmDialog = true },
+                            enabled = !isDownloading && activationCode.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A9EFF))
+                        ) {
+                            Text(if (isDownloading) "Baixando perfil..." else "Baixar e ativar perfil", color = Color.White)
+                        }
+                        statusMessage?.let {
+                            Spacer(Modifier.height(12.dp))
+                            Text(it, color = Color(0xFFB0B0B0), fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Confirmar ativação de eSIM") },
+            text = {
+                Text(
+                    "Isto vai baixar e ATIVAR um novo perfil eSIM no carro, alterando a " +
+                            "conectividade móvel. Use apenas um código de ativação de um plano que " +
+                            "você contratou junto à operadora. Continuar?"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConfirmDialog = false
+                    isDownloading = true
+                    statusMessage = "Solicitando download ao LPA..."
+                    EsimManager.downloadProfile(activationCode) { success, message ->
+                        scope.launch(Dispatchers.Main) {
+                            isDownloading = false
+                            statusMessage = message
+                        }
+                    }
+                }) { Text("Ativar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) { Text("Cancelar") }
             }
         )
     }
