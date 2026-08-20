@@ -30,7 +30,7 @@ pode violar os termos do fabricante.
 - É um carro: mudança no cluster e no multimídia tem risco físico e de garantia
   — a decisão de instalar é sempre do Rogério, nunca da sessão.
 
-## Estado — parado por decisão
+## Por que este projeto está parado (decisão, não abandono)
 
 O trabalho foi **interrompido de propósito**: *"vamos continuar depois",
 "depois voltamos para esse assunto"*. Não é abandono; é uma fila.
@@ -51,3 +51,9 @@ outra pessoa e o Rogério não tem permissão de push lá (403 confirmado em
 
 Idioma: conversa em PT-BR; o código e os commits do upstream são em inglês/PT
 misturados — seguir o estilo do arquivo que estiver editando.
+
+## Estado
+
+Não fica aqui. Onde o trabalho parou vai em `DOCS/HANDOVER.md`; este arquivo é só
+para o que continua valendo daqui a seis meses — inclusive a decisão acima, que é
+durável: a fila e o motivo do 403 não mudam com o tempo.
